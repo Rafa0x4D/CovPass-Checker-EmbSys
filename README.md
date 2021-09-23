@@ -5,6 +5,18 @@
 - replace `.config` from buildroot home dir with `.config`  from this repo
 - compile the system 
 
+OS-Creds:
+- user: `root`
+- pw: `Geheim!`
+
+AP-Creds:
+- SSID: `Team01`
+- pw: `Embedded-Sys2`
+
+AP-Info:
+- AP-IP (Gateway): `10.1.0.1`
+- DHCP range: `10.1.0.10` - `10.1.0.100`
+
 ---
 
 # Voraussetzungen
