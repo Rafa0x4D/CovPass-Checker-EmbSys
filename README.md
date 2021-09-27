@@ -7,7 +7,7 @@
 
 OS-Creds:
 - user: `root`
-- pw: `Geheim!`
+- pw: `Test`
 
 AP-Creds:
 - SSID: `Team01`
@@ -60,7 +60,7 @@ Das image auf die SD-Karte schreiben:
 sudo dd if=sdcard.img of=/dev/<dev-name> bs=1m
 ```
 
-Login-Daten standard: user: root password: kein festgelegt
+Login-Daten standard: user: root password: test
 
 ---
 
@@ -100,6 +100,20 @@ System configuration -> System banner
 
 ---
 
+### Toolchain
+Toolchain -> cLibrary -> gLibc 
+
+Um später opencv zu nutzen muss in der Toolchain gLibc ausgewählt werden. 
+
+---
+
+### erweiterte Firmware aktiviere
+wird dann für die Nutzung der Kamera benötigt
+
+target packaes -> hardware handling -> firmware -> rpi firmware -> firmware to boot -> extended
+
+---
+
 ### SSH aktivieren (dropbear)
 kleiner und einfacher SSH-Server
 
@@ -109,198 +123,141 @@ Target Packages -> Networking applications -> dropbear
 
 ---
 
-## WiFi aktivieren
-Broadcom Wireless Treiber automatisch laden
-(`BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_MDEV = y`)
+# WiFi aktivieren
+
+Wird mittels dnsmasq und hostapd umgesetzt. 
+
 ```
-System configuration -> /dev management -> Dynamic using devtmpfs + mdev
+Target Packages -> Networking applications -> dnsmasq
 ```
 
-RaspberryPi WiFi-Firmware aktivieren
-(`BR2_PACKAGE_RPI_WIFI_FIRMWARE = y`)
 ```
-Target packages -> Hardware handling -> Firmware -> rpi-wifi-firmware
+Target Packages -> Networking applications -> hostapd
 ```
 
-WPA-Supplicant installieren, um sich mit WiFi verbinden zukönnen:
-(`BR2_PACKAGE_WPA_SUPPLICANT = y`)
-```
-Target packages -> Networking applications -> wpa_supplicant
-```
+Für beide Pakete müssen im Overlay Ordner unter /etc/ Konfigurationsdateien abgelegt werden. 
 
-aktuellen Wireless API für Linux auswählen:
-(`BR2_PACKAGE_WPA_SUPPLICANT_NL80211 = y`)
-```
-Target packages -> Networking applications -> wpa_supplicant -> Enable nl80211 support
-```
-
-Um es möglich zu machen sich auch mit anderen WiFi-Netzwerke zu verbinden muss WPA-Passphrase installiert werden:
-(`BR2_PACKAGE_WPA_SUPPLICANT_PASSPHRASE = y`)
-```
-Target packages -> Networking applications -> wpa_supplicant -> Install wpa_passphrase binary
-```
-
-Eine Datei `interfaces` in `buildroot/overlay/etc/network/` mit folgendem Inhalt erstellen. Das ist eine Konfiguration für die Interfaces auf dem Raspi:
-```
-auto lo
-iface lo inet loopback
-auto eth0
-iface eth0 inet dhcp
-    pre-up /etc/network/nfs_check
-    wait-delay 15
-auto wlan0
-iface wlan0 inet dhcp
-    pre-up wpa_supplicant -B -Dnl80211 -iwlan0 -c/etc/wpa_supplicant.conf
-    post-down killall -q wpa_supplicant
-    wait-delay 15
-iface default inet dhcp
-```
-
-Eine andere Datei `wpa_supplicant.conf` für Passphrase in `buildroot/overlay/etc/network/` mit folgendem Inhalt erstellen:
-```
-network={
-    ssid="<SSID>"
-    psk="<Passwort>"
-}
-```
-
-Folgenden Befehlen / Zeilen an der Datei `buildroot/board/raspberrypi/post-build.sh` anhängen:
-```bash
-cp package/busybox/S10mdev ${TARGET_DIR}/etc/init.d/S10mdev
-chmod 755 ${TARGET_DIR}/etc/init.d/S10mdev
-cp package/busybox/mdev.conf ${TARGET_DIR}/etc/mdev.conf
 ``` 
+dnsmasq.conf
 
----
-
-## WiFi Access-Point erstellen
-Hardening Option RELRO zu Partial setzen:
-(`BR2_RELRO_PARTIAL = y`)
-```
-Build options -> RELRO Protection -> Partial
+interface=wlan0 # Listening interface
+dhcp-range=10.1.0.2,10.1.0.254,255.255.255.0,24h 
+domain=wlan0     
+address=/gw.wlan/10.1.0.1
 ```
 
-alle Pakete die von BusyBox angeboten werden anzeigen
-(`BR2_PACKAGE_BUSYBOX_SHOW_OTHERS = y`)
-```
-Target packages -> BusyBox -> Show packages that are also provided by busybox
-```
+``` 
+hostapd.conf
 
-Alle  DHCP Pakete installieren (server, client, relay, dhcpd) und delayed acknowledge feature aktivieren
-(`BR2_PACKAGE_DHCP = y`)
-(`BR2_PACKAGE_DHCP_SERVER = y`)
-(`BR2_PACKAGE_DHCP_SERVER_DELAYED_ACK = y`)
-(`BR2_PACKAGE_DHCP_CLIENT = y`)
-(`BR2_PACKAGE_DHCPCD = y`)
+country_code=DE
+interface=wlan0
+ssid=Team01
+hw_mode=g
+channel=7
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=Embedded-Sys2
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
 ```
-Target packages -> Networking applications -> dhcp (ISC)
-Target packages -> Networking applications -> dhcp (ISC) -> dhcp server
-Target packages -> Networking applications -> dhcp (ISC) -> dhcp server -> Enable delayed ACK feature
-Target packages -> Networking applications -> dhcp (ISC) -> dhcp client
-Target packages -> Networking applications -> dhcpcd
-```
+Zur Konfiguration der Netzwerk-Interfaces im Overlay Ordner unter /etc/network/interfaces folgende Datei ablegen
 
-um nftables compat aktivieren zu können muss folgender toolchain installiert werden:
-```
-Toolchain -> Enable WCHAR support
-```
-
-Iptables aktivieren (Firewall)
-(`BR2_PACKAGE_IPTABLES = y`)
-(`BR2_PACKAGE_IPTABLES_BPF_NFSYNPROXY = y`)
-```
-Target packages -> Networking applications -> iptables
-Target packages -> Networking applications -> iptables -> bpfc and nfsynproxy
-Target packages -> Networking applications -> iptables -> nftables compat
-```
-
-Access Point Mode aktivieren
-(`BR2_PACKAGE_WPA_SUPPLICANT_AP_SUPPORT = y`)
-```
-Target packages -> Networking applications -> wpa_supplicant -> Enable AP mode
-```
-
-Die Interface-Einstellungen müssen manuell festgelegt werden. Die Datei `buildroot/overlay/etc/network/interfaces` wie folgt editieren:
-```
+``` 
 auto lo
-iface lo inet loopback
+
 auto eth0
 iface eth0 inet dhcp
-    pre-up /etc/network/nfs_check
     wait-delay 15
+
 auto wlan0
 iface wlan0 inet static
     address 10.1.0.1
     netmask 255.255.255.0
     network 10.1.0.0
     gateway 10.1.0.1
-    pre-up wpa_supplicant -B -Dnl80211 -iwlan0 -c/etc/wpa_supplicant.conf
-    post-down killall -q wpa_supplicant
-    wait-delay 15
 iface default inet dhcp
-```
-
-Die WPA-Supplicant-Einstellungen ändern. Die Datei `buildroot/overlay/etc/wpa_supplicant.conf` wie folgt ändern. `mode=2` ist Access Point mode:
-
-**ACHTUNG**: Das Passwort (`psk`) muss mind. 8 Zeichen lang sein, sonst funktioniert der AP nicht
 
 ```
-network={
-    ssid="Team01"
-    mode=2
-    proto=RSN
-    key_mgmt=WPA-PSK
-    pairwise=CCMP TKIP
-    group=CCMP TKIP
-    psk="Embedded-Sys2"
-}
-```
 
-für DHCP einstellungen die Datei `buildroot/overlay/etc/dhcp/dhcpd.conf` mit folgendem Inhalt anlegen:
-```
-ddns-update-style none;
-default-lease-time 600;
-max-lease-time 7200;
-authoritative;
-log-facility local7;
-
-subnet 10.1.0.0 netmask 255.255.255.0 {
-  range 10.1.0.10 10.1.0.100;
-  option broadcast-address 10.1.0.255;
-  option routers 10.1.0.1;
-  default-lease-time 600;
-  max-lease-time 7200;
-  option domain-name "local";
-  option domain-name-servers 8.8.8.8, 8.8.4.4;
-}
-```
-
-Eine Datei `sysctl.conf` in `buildroot/overlay/etc/` mit folgendem Inhalt erstellen:
-```
-# Enable IP forwarding.
-net.ipv4.ip_forward = 1
-```
-
-Um Sysctl nach jenden Boot und Shutdown automatisch einstellen zu können erstelle die Datei `S02procps` in `buildroot/overlay/etc/init.d`. Die Datei hat folgendem Inhalt. Das ist eine Ausführbarer Shell-Skript:
+Damit Hostapd beim booten automatisch startet muss ein init skript angelegt werden. Das Skript wird dann unter /etc/init.d/S90hostapd im Overlay Ordner angelegt. 
 
 ```sh
-#! /bin/sh
-if [ "$1" == "start" ]; then
-    sysctl -p
-fi
+#!/bin/sh
+
+start(){
+        echo "Starting hostapd"
+        hostapd -B /etc/hostapd.conf
+        [ $? -eq 0 ] && echo "OK" || echo "Error"
+}
+
+stop(){
+        echo "Stopping Hostapd"
+        killall hostapd
+        [ $? -eq 0 ] && echo "OK" || echo "Error"
+}
+
+restart(){
+        stop
+        start
+}
+
+case "$1" in
+  start|stop|restart)
+        "$1"
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
 ```
 
-Um Firewall (iptables) zu konfigurieren, muss die Datei `S99firewall` in `buildroot/overlay/etc/init.d` des Images erstellt werden. Die Datei hat folgendem Inhalt. DAs ist eine Ausführbarer Shell-Skript. Um es nach jedem Boot-Operation automatisch starten zu können, muss es in den `/etc/init.d` ordner erstellt werden:
+Das Skript muss dann per chmod +x ausführbar gemacht werden. 
+
+Zum schluss muss das post-build skript angepasst werden. 
+buildroot/boards/raspberrypi/post-build.sh
+
+Am ende des Skript anfügen
+
+
+---
+
+# Python aktivieren
+
+make menuconfig
+-> target packages -> Interpreter Languages und scripting -> python3
+
+---
+
+## Opencv und zbar (TODO)
+Opencv kann ohne Probleme installiert werden allerdings wird für das Python Modul glibc benötigt. 
+
+make menuconfig -> toolchain -> c library, glibc auswählen
+
+WICHTIG: Wenn Optionen in der Toolchain geändert werden muss erst make clean ausgeführt werden. Das Image muss dann komplett von vorne neu gebaut werden. 
+
+Für Opencv und zbar (c libarary für pyzbar):
+make menuconfig:
+target packages -> libraries -> graphics -> opencv3 -> python
+
+target packages -> libraries -> graphics -> zbar
+
+---
+
+## Pyzbar Python Module installieren (TODO)
+
+Das Modul kann per pip lokal installiert werden. Das Paket befindet sich dann unter (Kubuntu) .local/lib/python3.8/site-packages/pyzbar
+
+Von dort kann das modul in den overlay Ordner kopiert werden. 
 
 ```sh
-#! /bin/sh
-if [ "$1" == "start" ]; then
-    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-    iptables -P FORWARD DROP
-    iptables -A FORWARD -i eth0 -o wlan0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT
-    iptables -P INPUT DROP
-    iptables -A INPUT -i eth0 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-    iptables -A INPUT -i wlan0 -j ACCEPT
-fi
+cp .local/lib/python3.8/site-packages/pyzbar buildroot/overlay/
 ```
+
+Das kann so theoretisch auch mit allen anderen Modulen gemacht werden. 
+
+Alternativ über ein venv probieren

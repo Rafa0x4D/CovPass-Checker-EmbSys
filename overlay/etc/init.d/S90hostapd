@@ -1,0 +1,29 @@
+#!/bin/sh
+
+start(){
+        echo "Starting hostapd"
+        hostapd -B /etc/hostapd.conf
+        [ $? -eq 0 ] && echo "OK" || echo "Error"
+}
+
+stop(){
+        echo "Stopping Hostapd"
+        killall hostapd
+        [ $? -eq 0 ] && echo "OK" || echo "Error"
+}
+
+restart(){
+        stop
+        start
+}
+
+case "$1" in
+  start|stop|restart)
+        "$1"
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
