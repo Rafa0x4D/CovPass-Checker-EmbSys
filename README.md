@@ -7,7 +7,7 @@
 
 OS-Creds:
 - user: `root`
-- pw: `Test`
+- pw: `test`
 
 AP-Creds:
 - SSID: `Team01`
@@ -15,7 +15,7 @@ AP-Creds:
 
 AP-Info:
 - AP-IP (Gateway): `10.1.0.1`
-- DHCP range: `10.1.0.10` - `10.1.0.100`
+- DHCP range: `10.1.0.2` - `10.1.0.254`
 
 ---
 
