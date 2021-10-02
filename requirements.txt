@@ -1,0 +1,6 @@
+opencv-python
+opencv-contrib-python
+pyzbar
+base45
+cbor2
+zlib
