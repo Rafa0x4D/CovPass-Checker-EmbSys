@@ -24,7 +24,10 @@ Programme:
 - git
 - make
 - dd (andere Möglichkeiten: Raspberry PI Imager; Rufus; Balena Etcher)
-- todo
+- gcc
+- g++
+- unzip
+- libncurses-dev
 
 ---
 
@@ -49,6 +52,11 @@ Die Konfiguration wird in die Datei `buildroot/.config` geschriebnen
 aus dieser Konf-Datei ein Image erstellen (`-j8`: benutze 8 CPU Kerne):
 ```bash
 make -j8
+```
+
+**HINWEIS**: um mit mehr als en Kern kompilieren zu können muss folgender Eintrag in `.config` gesetzt werden:
+```txt
+BR2_PER_PACKAGE_DIRECTORIES=y
 ```
 
 **ACHTUNG**: dieser Prozess kann beim erstem Mal etwa bis zu xy minuten dauern (36 min)
