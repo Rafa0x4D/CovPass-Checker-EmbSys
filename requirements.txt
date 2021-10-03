@@ -1,6 +1,6 @@
-opencv-python
-opencv-contrib-python
-pyzbar
-base45
-cbor2
-zlib
+base45~=0.4.3
+cbor2~=5.4.1
+pyzbar~=0.1.8
+opencv-python~=4.5.3.56
+opencv-contrib-python~=4.5.3.56
+cose~=0.9.dev8
