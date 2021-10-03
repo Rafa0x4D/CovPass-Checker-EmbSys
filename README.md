@@ -267,6 +267,15 @@ make menuconfig
 
 ---
 
+## Cbor2 installieren
+(`BR2_PACKAGE_PYTHON_CRYPTOGRAPHY=y`)
+
+```
+-> target packages -> Interpreter Languages und scripting -> python3 --> External python modules --> python-cryptography
+```
+
+---
+
 ## Opencv und zbar (TODO)
 Opencv kann ohne Probleme installiert werden allerdings wird für das Python Modul glibc benötigt. 
 
