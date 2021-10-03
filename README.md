@@ -108,6 +108,12 @@ System configuration -> System banner
 
 ---
 
+### Root-Dateisystem vergrößern
+```
+BR2_TARGET_ROOTFS_EXT2_SIZE="3G"
+```
+---
+
 ### Toolchain
 Toolchain -> cLibrary -> gLibc 
 
