@@ -267,7 +267,7 @@ make menuconfig
 
 ---
 
-## Cbor2 installieren
+## Cryptography installieren
 (`BR2_PACKAGE_PYTHON_CRYPTOGRAPHY=y`)
 
 ```
@@ -276,11 +276,29 @@ make menuconfig
 
 ---
 
-## Cbor2 installieren
+## Numpy installieren
 (`BR2_PACKAGE_PYTHON_NUMPY=y`)
 
 ```
 -> target packages -> Interpreter Languages und scripting -> python3 --> External python modules --> python-numpy
+```
+
+---
+
+## Opencv4 installieren
+(`BR2_PACKAGE_OPENCV4=y`, `BR2_PACKAGE_OPENCV4_LIB_PYTHON=y`)
+
+```
+-> target packages -> libraries -> graphics -> opencv4 -> python
+```
+
+---
+
+## Zbar installieren
+(`BR2_PACKAGE_ZBAR=y`)
+
+```
+-> target packages -> libraries -> graphics -> zbar
 ```
 
 ---
