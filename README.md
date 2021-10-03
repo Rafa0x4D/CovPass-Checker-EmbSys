@@ -243,7 +243,18 @@ Am ende des Skript anfügen
 # Python aktivieren
 
 make menuconfig
+```
 -> target packages -> Interpreter Languages und scripting -> python3
+```
+
+---
+
+## zlib Modul installieren
+(`BR2_PACKAGE_PYTHON3_ZLIB=y`)
+
+```
+-> target packages -> Interpreter Languages und scripting -> python3 --> core python3 modules --> zlib module
+```
 
 ---
 
