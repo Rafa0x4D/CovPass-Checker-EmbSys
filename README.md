@@ -249,11 +249,20 @@ make menuconfig
 
 ---
 
-## zlib Modul installieren
+## zlib installieren
 (`BR2_PACKAGE_PYTHON3_ZLIB=y`)
 
 ```
 -> target packages -> Interpreter Languages und scripting -> python3 --> core python3 modules --> zlib module
+```
+
+---
+
+## Cbor2 installieren
+(`BR2_PACKAGE_PYTHON_CBOR2=y`)
+
+```
+-> target packages -> Interpreter Languages und scripting -> python3 --> External python modules --> python-cbor2
 ```
 
 ---
