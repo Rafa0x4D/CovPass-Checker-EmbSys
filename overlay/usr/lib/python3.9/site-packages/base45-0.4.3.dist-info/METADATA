@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: base45
+Version: 0.4.3
+Summary: Base45 Encoder/Decoder
+Home-page: https://github.com/kirei/python-base45
+License: BSD-2-Clause
+Author: Jakob Schlyter
+Author-email: jakob@kirei.se
+Requires-Python: >=3.6,<4.0
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Project-URL: Repository, https://github.com/kirei/python-base45
+Description-Content-Type: text/markdown
+
+# Python Base45
+
+A Python module to encode/decode binary data using Base45 as described in [draft-faltstrom-base45-06 ](https://datatracker.ietf.org/doc/draft-faltstrom-base45/).
+

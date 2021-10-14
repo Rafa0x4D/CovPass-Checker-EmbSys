@@ -1,0 +1,7 @@
+base45~=0.4.3
+cbor2~=5.4.1
+pyzbar~=0.1.8
+opencv-python~=4.5.3.56
+opencv-contrib-python~=4.5.3.56
+cose~=0.9.dev8
+Flask~=2.0.2
