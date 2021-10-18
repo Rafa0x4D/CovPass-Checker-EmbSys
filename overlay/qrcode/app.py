@@ -1,5 +1,5 @@
 from flask import Flask, render_template, Response
-from qrcodescan import videocapture
+from vacdec import videocapture
 
 app = Flask(__name__)
 
