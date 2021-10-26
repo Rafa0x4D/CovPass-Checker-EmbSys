@@ -305,7 +305,7 @@ def main() -> None:
     log.debug("Cert data: '{0}'".format(covid_cert_data))
     output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
 
-def videocapture():
+def videocapture(cap):
     parser = argparse.ArgumentParser(description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
                         help='Image to read QR-code from')
@@ -318,14 +318,13 @@ def videocapture():
 
     args = parser.parse_args()
 
-    vid = cv2.VideoCapture(0)
+    vid = cap
 
     log.info('started capturing')
 
     while True:
         ret, frame = vid.read()
 
-        width = int(vid.get(3))
         height = int(vid.get(4))
 
         cert_info = ["Waiting for QR-Codes..."]
@@ -339,10 +338,6 @@ def videocapture():
 
         for barcode in barcodes:
             covid_cert_data = barcode.data.decode()
-
-            # Draw rectangle around barcode
-            (x, y, w, h) = barcode.rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 5)
 
             # Strip the first characters to form valid Base45-encoded data
             b45data = covid_cert_data[4:]
@@ -380,8 +375,17 @@ def videocapture():
                     cbor[-260][1]['nam']['fn'] + " " + cbor[-260][1]['nam']['gn'],
                     str(cbor[-260][1]['v'][0]['dn']) + " von " + str(cbor[-260][1]['v'][0]['sd']) + " Impfungen erhalten"
                 ]
+            
+            borderColor = (0, 0, 255)
             if key_verified:
                 cert_info.append("Signature Verified")
+                borderColor = (0, 255, 0)
+            else:
+                cert_info.append("Certificate Invalid")
+
+            # Draw rectangle around barcode
+            (x, y, w, h) = barcode.rect
+            cv2.rectangle(frame, (x, y), (x + w, y + h), borderColor, 10)
         
         offset = 0
         # Put Data to Frame to display the data       
