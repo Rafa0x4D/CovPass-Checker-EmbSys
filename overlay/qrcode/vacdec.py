@@ -7,6 +7,7 @@ import sys
 import zlib
 import argparse
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, Tuple, Optional
 
 import cv2
@@ -305,6 +306,51 @@ def main() -> None:
     log.debug("Cert data: '{0}'".format(covid_cert_data))
     output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
 
+def drawFrame(frame, message, frame_height):
+    offset = 0
+    # Put Data to Frame to display the data     
+    for itr, word in enumerate(message):
+        offset += int(frame_height / len(message)) - 10
+        frame = cv2.putText(frame, word, 
+                                    (20, offset), # Point = Bottom-left corner of the Text String
+                                    cv2.FONT_HERSHEY_SIMPLEX, # Font type
+                                    1, # Font Scale (size)
+                                    (35, 252, 20), # Color
+                                    1, # Tickness
+                                    cv2.LINE_AA # Line Type
+    )
+
+    ret, jpeg = cv2.imencode(".jpeg", frame)
+    frame = jpeg.tobytes()
+
+    return (b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+def check_fully_vaccinated(cbor):
+    nth_dose = str(cbor[-260][1]['v'][0]['dn'])
+    total_doses = str(cbor[-260][1]['v'][0]['sd'])
+    lastdosedate = str(cbor[-260][1]['v'][0]['dt'])
+    lastdosedate = datetime.strptime(lastdosedate, "%Y-%m-%d")
+    now = datetime.now()
+
+    return (nth_dose == total_doses) and ((lastdosedate + timedelta(days=15)) > now)
+
+def createMessage(cbor, key_verified):
+    firstname = cbor[-260][1]['nam']['fn']
+    lastname = cbor[-260][1]['nam']['gn']
+    nth_dose = str(cbor[-260][1]['v'][0]['dn'])
+    total_doses = str(cbor[-260][1]['v'][0]['sd'])
+
+    message = [
+                    firstname + " " + lastname,
+                    nth_dose + " von " + total_doses + " Impfungen erhalten"
+        ]
+
+    if key_verified:
+        message.append("Signatur gultig")
+
+    return message
+
 def videocapture(cap):
     parser = argparse.ArgumentParser(description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
@@ -318,14 +364,12 @@ def videocapture(cap):
 
     args = parser.parse_args()
 
-    vid = cap
-
     log.info('started capturing')
 
     while True:
-        ret, frame = vid.read()
+        ret, frame = cap.read()
 
-        height = int(vid.get(4))
+        height = int(cap.get(4))
 
         cert_info = ["Waiting for QR-Codes..."]
         
@@ -333,9 +377,11 @@ def videocapture(cap):
 
         if not barcodes:
             log.info('no barcode detected')
-        
-        data = pyzbar.pyzbar.decode(frame)
 
+        if len(barcodes) > 1:
+            message = "Bitte nur 1 Impfzertikat zeigen"
+            return drawFrame(frame, message, height)
+        
         for barcode in barcodes:
             covid_cert_data = barcode.data.decode()
 
@@ -367,45 +413,18 @@ def videocapture(cap):
 
             cbor = cbor2.loads(cose_msg.payload)
 
-            # log.debug("Cert data: '{0}'".format(covid_cert_data))
             # output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
 
-            # data to display
-            cert_info = [
-                    cbor[-260][1]['nam']['fn'] + " " + cbor[-260][1]['nam']['gn'],
-                    str(cbor[-260][1]['v'][0]['dn']) + " von " + str(cbor[-260][1]['v'][0]['sd']) + " Impfungen erhalten"
-                ]
-            
-            borderColor = (0, 0, 255)
-            if key_verified:
-                cert_info.append("Signature Verified")
-                borderColor = (0, 255, 0)
-            else:
-                cert_info.append("Certificate Invalid")
-
             # Draw rectangle around barcode
+            rect_color = ((0, 0, 255), (0, 255, 0))[key_verified and check_fully_vaccinated(cbor)] # red/green
             (x, y, w, h) = barcode.rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), borderColor, 10)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), rect_color, 10)
+
+            # data to display
+            cert_info = createMessage(cbor, key_verified)
         
-        offset = 0
-        # Put Data to Frame to display the data       
-        for itr, word in enumerate(cert_info):
-            offset += int(height / len(cert_info)) - 10
-            frame = cv2.putText(frame, word, 
-                                        (20, offset), # Point = Bottom-left corner of the Text String
-                                        cv2.FONT_HERSHEY_SIMPLEX, # Font type
-                                        0.5, # Font Scale (size)
-                                        (35, 252, 20), # Color
-                                        1, # Tickness
-                                        cv2.LINE_AA # Line Type
-        )
-
-        ret, jpeg = cv2.imencode(".jpeg", frame)
-        frame = jpeg.tobytes()
-
-        yield(b'--frame\r\n'
-              b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+        yield(drawFrame(frame, cert_info, height))
 
 
 if __name__ == '__main__':
-    capturevideo()
+    videocapture()
