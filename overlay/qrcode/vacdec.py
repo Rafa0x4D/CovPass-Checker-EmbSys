@@ -306,7 +306,7 @@ def main() -> None:
     log.debug("Cert data: '{0}'".format(covid_cert_data))
     output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
 
-def drawFrame(frame, message, frame_height):
+def drawFrame(frame, message, frame_height, text_color):
     offset = 0
     # Put Data to Frame to display the data     
     for itr, word in enumerate(message):
@@ -315,7 +315,7 @@ def drawFrame(frame, message, frame_height):
                                     (20, offset), # Point = Bottom-left corner of the Text String
                                     cv2.FONT_HERSHEY_SIMPLEX, # Font type
                                     1, # Font Scale (size)
-                                    (35, 252, 20), # Color
+                                    text_color, # Color
                                     1, # Tickness
                                     cv2.LINE_AA # Line Type
     )
@@ -343,15 +343,19 @@ def createMessage(cbor, key_verified):
 
     message = [
                     firstname + " " + lastname,
-                    nth_dose + " von " + total_doses + " Impfungen erhalten"
+                    nth_dose + " von " + total_doses + " Impfungen erhalten",
+                    "Signatur gueltig"
         ]
 
-    if key_verified:
-        message.append("Signatur gultig")
+    if not key_verified:
+        message = ["Signatur ungueltig"]
 
     return message
 
 def videocapture(cap):
+    color_red = (0, 0, 255)
+    color_green = (0, 255, 0)
+
     parser = argparse.ArgumentParser(description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
                         help='Image to read QR-code from')
@@ -375,27 +379,48 @@ def videocapture(cap):
         
         barcodes = pyzbar.pyzbar.decode(frame)
 
-        if not barcodes:
-            log.info('no barcode detected')
-
         if len(barcodes) > 1:
             message = "Bitte nur 1 Impfzertikat zeigen"
-            return drawFrame(frame, message, height)
+            yield(drawFrame(frame, [message], height, color_red))
+            continue
         
         for barcode in barcodes:
             covid_cert_data = barcode.data.decode()
 
             # Strip the first characters to form valid Base45-encoded data
-            b45data = covid_cert_data[4:]
+            try:
+                b45data = covid_cert_data[4:]
+            except:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # Decode the data
-            zlibdata = base45.b45decode(b45data)
+            try:
+                zlibdata = base45.b45decode(b45data)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # Uncompress the data
-            decompressed = zlib.decompress(zlibdata)
+            try:
+                decompressed = zlib.decompress(zlibdata)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # decode COSE message (no signature verification done)
-            cose_msg = CoseMessage.decode(decompressed)
+            try:
+                cose_msg = CoseMessage.decode(decompressed)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # decode the CBOR encoded payload and print as json
             key_verified = False
@@ -413,17 +438,15 @@ def videocapture(cap):
 
             cbor = cbor2.loads(cose_msg.payload)
 
-            # output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
-
             # Draw rectangle around barcode
-            rect_color = ((0, 0, 255), (0, 255, 0))[key_verified and check_fully_vaccinated(cbor)] # red/green
+            rect_color, text_color = ((0, 0, 255), (0, 255, 0))[key_verified and check_fully_vaccinated(cbor)] # red/green
             (x, y, w, h) = barcode.rect
             cv2.rectangle(frame, (x, y), (x + w, y + h), rect_color, 10)
 
             # data to display
             cert_info = createMessage(cbor, key_verified)
         
-        yield(drawFrame(frame, cert_info, height))
+        yield(drawFrame(frame, cert_info, height, text_color))
 
 
 if __name__ == '__main__':

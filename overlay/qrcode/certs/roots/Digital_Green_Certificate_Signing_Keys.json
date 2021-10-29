@@ -1,4 +1,21 @@
 {
+	"Rjene8QvRwA=": {
+		"serialNumber": "0179ccf8be3b7e605c7b",
+		"subject": "C=AT, O=BMSGPK, 2.5.4.5=001001, CN=AT DGC DSC 1",
+		"issuer": "C=AT, O=BMSGPK, 2.5.4.5=001, CN=AT DGC CSCA 1",
+		"notBefore": "2021-06-02T13:45:24.000Z",
+		"notAfter": "2023-06-02T13:45:24.000Z",
+		"signatureAlgorithm": "ECDSA",
+		"fingerprint": "54e0dde0904f118b15b54d7a3da75049e29d3b63",
+		"publicKeyAlgorithm": {
+			"hash": {
+				"name": "SHA-256"
+			},
+			"name": "ECDSA",
+			"namedCurve": "P-256"
+		},
+		"publicKeyPem": "MIIBYDCCAQYCEQCAG8uscdLb0ppaneNN5sB7MAoGCCqGSM49BAMCMDIxIzAhBgNVBAMMGk5hdGlvbmFsIENTQ0Egb2YgRnJpZXNsYW5kMQswCQYDVQQGEwJGUjAeFw0yMTA0MjcyMDQ3MDVaFw0yNjAzMTIyMDQ3MDVaMDYxJzAlBgNVBAMMHkRTQyBudW1iZXIgd29ya2VyIG9mIEZyaWVzbGFuZDELMAkGA1UEBhMCRlIwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARkJeqyO85dyR+UrQ5Ey8EdgLyf9NtsCrwORAj6T68/elL19aoISQDbzaNYJjdD77XdHtd+nFGTQVpB88wPTwgbMAoGCCqGSM49BAMCA0gAMEUCIQDvDacGFQO3tuATpoqf40CBv09nfglL3wh5wBwA1uA7lAIgZ4sOK2iaaTsFNqENAF7zi+d862ePRQ9Lwymr7XfwVm0="
+	},
 	"Is2JtrOJhik=": {
 		"serialNumber": "0179ccf8be3b7e605c7b",
 		"subject": "C=AT, O=BMSGPK, 2.5.4.5=001001, CN=AT DGC DSC 1",

@@ -1,3 +1,4 @@
 #!/bin/sh
 
-python3 /qrcode/app.py &
+cd /qrcode
+python3 app.py &
