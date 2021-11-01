@@ -2,3 +2,4 @@
 
 cd /qrcode
 python3 app.py &
+cd /
