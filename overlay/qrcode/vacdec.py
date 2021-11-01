@@ -37,7 +37,8 @@ DEFAULT_CERTIFICATE_DIRECTORY = 'certs'
 
 
 def _setup_logger() -> None:
-    log_formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s")
+    log_formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)-5.5s]  %(message)s")
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(log_formatter)
     console_handler.propagate = False
@@ -54,7 +55,8 @@ def find_key(key: KID, keys_file: str) -> Optional[cosekey.CoseKey]:
         # pprint(cose_key.kid.decode())
 
     key_id_str = key.hex()
-    pem_filename = "{}/{}.pem".format(DEFAULT_CERTIFICATE_DIRECTORY, key_id_str)
+    pem_filename = "{}/{}.pem".format(
+        DEFAULT_CERTIFICATE_DIRECTORY, key_id_str)
     log.debug("Check if certificate {} exists.".format(pem_filename))
     if os.path.exists(pem_filename):
         with open(pem_filename, "rb") as pem_file:
@@ -67,8 +69,10 @@ def find_key(key: KID, keys_file: str) -> Optional[cosekey.CoseKey]:
         if subject:
             subject_parts = []
             for subject_compo in subject:
-                subject_parts.append("{} = {}".format(subject_compo.oid._name, subject_compo.value))
-            log.debug("Certificate subject: {}".format(', '.join(subject_parts)))
+                subject_parts.append("{} = {}".format(
+                    subject_compo.oid._name, subject_compo.value))
+            log.debug("Certificate subject: {}".format(
+                ', '.join(subject_parts)))
         else:
             log.debug("Certificate has no subject")
         log.info("Using certificate {}".format(pem_filename))
@@ -85,10 +89,12 @@ def find_key(key: KID, keys_file: str) -> Optional[cosekey.CoseKey]:
                 log.info("Found the key from DB!")
                 # pprint(key_data)
                 # check if the point is uncompressed rather than compressed
-                x, y = public_ec_key_points(base64.b64decode(key_data['publicKeyPem']))
+                x, y = public_ec_key_points(
+                    base64.b64decode(key_data['publicKeyPem']))
                 key_dict = {'crv': key_data['publicKeyAlgorithm']['namedCurve'],  # 'P-256'
                             'kid': key_id_binary.hex(),
-                            'kty': key_data['publicKeyAlgorithm']['name'][:2],  # 'EC'
+                            # 'EC'
+                            'kty': key_data['publicKeyAlgorithm']['name'][:2],
                             'x': x,  # 'eIBWXSaUgLcxfjhChSkV_TwNNIhddCs2Rlo3tdD671I'
                             'y': y,  # 'R1XB4U5j_IxRgIOTBUJ7exgz0bhen4adlbHkrktojjo'
                             }
@@ -124,7 +130,8 @@ def _cert_to_cose_key(cert: x509.Certificate, key_id: KID = None) -> cosekey.Cos
                 break
 
         if not matching_curve:
-            raise RuntimeError("Could not find curve {} used in X.509 certificate from COSE!".format(curve_name))
+            raise RuntimeError(
+                "Could not find curve {} used in X.509 certificate from COSE!".format(curve_name))
 
         public_numbers = public_key.public_numbers()
         size_bytes = public_key.curve.key_size // 8
@@ -208,7 +215,8 @@ def read_cosekey_from_pem_file(cert_file: str) -> cosekey.CoseKey:
     with open(cert_file, 'rb') as f:
         cert_data = f.read()
         # Calculate Hash from the DER format of the Certificate
-        cert = x509.load_pem_x509_certificate(cert_data, hazmat.backends.default_backend())
+        cert = x509.load_pem_x509_certificate(
+            cert_data, hazmat.backends.default_backend())
         keyidentifier = cert.fingerprint(hazmat.primitives.hashes.SHA256())
     f.close()
     key = cert.public_key()
@@ -258,13 +266,15 @@ def output_covid_cert_data(cert: str, keys_file: str) -> None:
     # Note: Some countries have hour:minute:secod for sc-field (Date/Time of Sample Collection).
     # If used, this will decode as a datetime. A datetime cannot be JSON-serialized without hints (use str as default).
     # Note 2: Names may contain non-ASCII characters in UTF-8
-    log.info("Certificate as JSON: {0}".format(json.dumps(cbor, indent=2, default=str, ensure_ascii=False)))
+    log.info("Certificate as JSON: {0}".format(json.dumps(
+        cbor, indent=2, default=str, ensure_ascii=False)))
 
 
 def verify_signature(cose_msg: CoseMessage, key: cosekey.CoseKey) -> bool:
     cose_msg.key = key
     if not cose_msg.verify_signature():
-        log.warning("Signature does not verify with key ID {0}!".format(key.kid.decode()))
+        log.warning(
+            "Signature does not verify with key ID {0}!".format(key.kid.decode()))
         return False
 
     log.info("Signature verified ok")
@@ -273,7 +283,8 @@ def verify_signature(cose_msg: CoseMessage, key: cosekey.CoseKey) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='EU COVID Vaccination Passport Verifier')
+    parser = argparse.ArgumentParser(
+        description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
                         help='Image to read QR-code from')
     parser.add_argument('--raw-string', metavar="RAW-STRING",
@@ -299,32 +310,36 @@ def main() -> None:
     elif args.raw_string:
         covid_cert_data = args.raw_string
     else:
-        log.error("Input parameters: Need either --image-file or --raw-string QR-code content.")
+        log.error(
+            "Input parameters: Need either --image-file or --raw-string QR-code content.")
         exit(2)
 
     # Got the data, output
     log.debug("Cert data: '{0}'".format(covid_cert_data))
     output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
 
-def drawFrame(frame, message, frame_height):
+
+def drawFrame(frame, message, frame_height, text_color):
     offset = 0
-    # Put Data to Frame to display the data     
+    # Put Data to Frame to display the data
     for itr, word in enumerate(message):
         offset += int(frame_height / len(message)) - 10
-        frame = cv2.putText(frame, word, 
-                                    (20, offset), # Point = Bottom-left corner of the Text String
-                                    cv2.FONT_HERSHEY_SIMPLEX, # Font type
-                                    1, # Font Scale (size)
-                                    (35, 252, 20), # Color
-                                    1, # Tickness
-                                    cv2.LINE_AA # Line Type
-    )
+        frame = cv2.putText(frame, word,
+                            # Point = Bottom-left corner of the Text String
+                            (20, offset),
+                            cv2.FONT_HERSHEY_SIMPLEX,  # Font type
+                            1,  # Font Scale (size)
+                            text_color,  # Color
+                            1,  # Tickness
+                            cv2.LINE_AA  # Line Type
+                            )
 
     ret, jpeg = cv2.imencode(".jpeg", frame)
     frame = jpeg.tobytes()
 
     return (b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
 
 def check_fully_vaccinated(cbor):
     nth_dose = str(cbor[-260][1]['v'][0]['dn'])
@@ -335,6 +350,7 @@ def check_fully_vaccinated(cbor):
 
     return (nth_dose == total_doses) and ((lastdosedate + timedelta(days=15)) > now)
 
+
 def createMessage(cbor, key_verified):
     firstname = cbor[-260][1]['nam']['fn']
     lastname = cbor[-260][1]['nam']['gn']
@@ -342,17 +358,24 @@ def createMessage(cbor, key_verified):
     total_doses = str(cbor[-260][1]['v'][0]['sd'])
 
     message = [
-                    firstname + " " + lastname,
-                    nth_dose + " von " + total_doses + " Impfungen erhalten"
-        ]
+        firstname + " " + lastname,
+        nth_dose + " von " + total_doses + " Impfungen erhalten",
+        "Signatur gueltig"
+    ]
 
-    if key_verified:
-        message.append("Signatur gultig")
+    if not key_verified:
+        message = ["Signatur ungueltig"]
 
     return message
 
+
 def videocapture(cap):
-    parser = argparse.ArgumentParser(description='EU COVID Vaccination Passport Verifier')
+    color_red = (0, 0, 255)
+    color_green = (0, 255, 0)
+    text_color = (0, 255, 0)
+
+    parser = argparse.ArgumentParser(
+        description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
                         help='Image to read QR-code from')
     parser.add_argument('--raw-string', metavar="RAW-STRING",
@@ -372,30 +395,51 @@ def videocapture(cap):
         height = int(cap.get(4))
 
         cert_info = ["Waiting for QR-Codes..."]
-        
-        barcodes = pyzbar.pyzbar.decode(frame)
 
-        if not barcodes:
-            log.info('no barcode detected')
+        barcodes = pyzbar.pyzbar.decode(frame)
 
         if len(barcodes) > 1:
             message = "Bitte nur 1 Impfzertikat zeigen"
-            return drawFrame(frame, message, height)
-        
+            yield(drawFrame(frame, [message], height, color_red))
+            continue
+
         for barcode in barcodes:
             covid_cert_data = barcode.data.decode()
 
             # Strip the first characters to form valid Base45-encoded data
-            b45data = covid_cert_data[4:]
+            try:
+                b45data = covid_cert_data[4:]
+            except:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # Decode the data
-            zlibdata = base45.b45decode(b45data)
+            try:
+                zlibdata = base45.b45decode(b45data)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # Uncompress the data
-            decompressed = zlib.decompress(zlibdata)
+            try:
+                decompressed = zlib.decompress(zlibdata)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # decode COSE message (no signature verification done)
-            cose_msg = CoseMessage.decode(decompressed)
+            try:
+                cose_msg = CoseMessage.decode(decompressed)
+            except:
+                (x, y, w, h) = barcode.rect
+                cv2.rectangle(frame, (x, y), (x + w, y + h), color_red, 10)
+                yield(drawFrame(frame, ["Kein Impzertifikat"], height, color_red))
+                continue
 
             # decode the CBOR encoded payload and print as json
             key_verified = False
@@ -403,7 +447,8 @@ def videocapture(cap):
                 log.info("COVID certificate signed with X.509 certificate.")
                 log.info("X.509 in DER form has SHA-256 beginning with: {0}".format(
                     cose_msg.uhdr[KID].hex()))
-                key = find_key(cose_msg.uhdr[KID], args.certificate_db_json_file)
+                key = find_key(cose_msg.uhdr[KID],
+                               args.certificate_db_json_file)
                 if key:
                     key_verified = verify_signature(cose_msg, key)
                 else:
@@ -413,17 +458,21 @@ def videocapture(cap):
 
             cbor = cbor2.loads(cose_msg.payload)
 
-            # output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
-
             # Draw rectangle around barcode
-            rect_color = ((0, 0, 255), (0, 255, 0))[key_verified and check_fully_vaccinated(cbor)] # red/green
+            if key_verified and check_fully_vaccinated(cbor):
+                rect_color = color_green
+                text_color = color_green
+            else:
+                rect_color = color_red
+                text_color = color_red
+
             (x, y, w, h) = barcode.rect
             cv2.rectangle(frame, (x, y), (x + w, y + h), rect_color, 10)
 
             # data to display
             cert_info = createMessage(cbor, key_verified)
-        
-        yield(drawFrame(frame, cert_info, height))
+
+        yield(drawFrame(frame, cert_info, height, text_color))
 
 
 if __name__ == '__main__':
