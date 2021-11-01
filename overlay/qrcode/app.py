@@ -7,10 +7,6 @@ app = Flask(__name__)
 cap = cv2.VideoCapture(0)
 
 @app.route("/")
-def hello_world():
-    return render_template("index.html")
-
-@app.route("/stream")
 def video_stream():
     return Response(videocapture(cap), mimetype="multipart/x-mixed-replace; boundary=frame")
 
