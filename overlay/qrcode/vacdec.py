@@ -52,12 +52,6 @@ def _setup_logger() -> None:
 
 
 def find_key(key: KID, keys_file: str) -> Optional[cosekey.CoseKey]:
-    if False:
-        # Test read a PEM-key
-        cose_key = read_cosekey_from_pem_file("certs/Finland.pem")
-        # pprint(cose_key)
-        # pprint(cose_key.kid.decode())
-
     key_id_str = key.hex()
     pem_filename = "{}/{}.pem".format(
         DEFAULT_CERTIFICATE_DIRECTORY, key_id_str)
@@ -197,7 +191,6 @@ def cosekey_from_jwk_dict(jwk_dict: Dict) -> cosekey.CoseKey:
     if jwk_dict["crv"] != "P-256":
         raise ValueError("Only P-256 supported")
 
-    from pprint import pprint
     key = ec2.EC2(
         crv=curves.P256,
         x=cjwt_utils.b64d(jwk_dict["x"].encode()),
@@ -233,47 +226,6 @@ def read_cosekey_from_pem_file(cert_file: str) -> cosekey.CoseKey:
 
     return cosekey_from_jwk_dict(jwk_dict)
 
-
-def output_covid_cert_data(cert: str, keys_file: str) -> None:
-    # Code adapted from:
-    # https://alphalist.com/blog/the-use-of-blockchain-for-verification-eu-vaccines-passport-program-and-more
-
-    # Strip the first characters to form valid Base45-encoded data
-    b45data = cert[4:]
-
-    # Decode the data
-    zlibdata = base45.b45decode(b45data)
-
-    # Uncompress the data
-    decompressed = zlib.decompress(zlibdata)
-
-    # decode COSE message (no signature verification done)
-    cose_msg = CoseMessage.decode(decompressed)
-    # pprint.pprint(cose_msg)
-
-    # decode the CBOR encoded payload and print as json
-    log.debug(cose_msg.phdr)
-    if KID in cose_msg.uhdr:
-        log.info("COVID certificate signed with X.509 certificate.")
-        log.info("X.509 in DER form has SHA-256 beginning with: {0}".format(
-            cose_msg.uhdr[KID].hex()))
-        key = find_key(cose_msg.uhdr[KID], keys_file)
-        if key:
-            verify_signature(cose_msg, key)
-        else:
-            log.info("Skip verify as no key found from database")
-    else:
-        log.info("Certificate is not signed")
-    # log.debug(cose_msg.uhdr)
-    # log.debug(cose_msg.key)
-    cbor = cbor2.loads(cose_msg.payload)
-    # Note: Some countries have hour:minute:secod for sc-field (Date/Time of Sample Collection).
-    # If used, this will decode as a datetime. A datetime cannot be JSON-serialized without hints (use str as default).
-    # Note 2: Names may contain non-ASCII characters in UTF-8
-    log.info("Certificate as JSON: {0}".format(json.dumps(
-        cbor, indent=2, default=str, ensure_ascii=False)))
-
-
 def verify_signature(cose_msg: CoseMessage, key: cosekey.CoseKey) -> bool:
     cose_msg.key = key
     if not cose_msg.verify_signature():
@@ -284,44 +236,6 @@ def verify_signature(cose_msg: CoseMessage, key: cosekey.CoseKey) -> bool:
     log.info("Signature verified ok")
 
     return cose_msg.verify_signature()
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description='EU COVID Vaccination Passport Verifier')
-    parser.add_argument('--image-file', metavar="IMAGE-FILE",
-                        help='Image to read QR-code from')
-    parser.add_argument('--raw-string', metavar="RAW-STRING",
-                        help='Contents of the QR-code as string')
-    parser.add_argument('image_file_positional', metavar="IMAGE-FILE", nargs="?",
-                        help='Image to read QR-code from')
-    parser.add_argument('--certificate-db-json-file', default=DEFAULT_CERTIFICATE_DB_JSON,
-                        help="Default: {0}".format(DEFAULT_CERTIFICATE_DB_JSON))
-
-    args = parser.parse_args()
-    _setup_logger()
-
-    covid_cert_data = None
-    image_file = None
-    if args.image_file_positional:
-        image_file = args.image_file_positional
-    elif args.image_file:
-        image_file = args.image_file
-
-    if image_file:
-        data = pyzbar.pyzbar.decode(PIL.Image.open(image_file))
-        covid_cert_data = data[0].data.decode()
-    elif args.raw_string:
-        covid_cert_data = args.raw_string
-    else:
-        log.error(
-            "Input parameters: Need either --image-file or --raw-string QR-code content.")
-        exit(2)
-
-    # Got the data, output
-    log.debug("Cert data: '{0}'".format(covid_cert_data))
-    output_covid_cert_data(covid_cert_data, args.certificate_db_json_file)
-
 
 def drawFrame(frame, message, frame_height, text_color):
     offset = 0
@@ -394,23 +308,10 @@ def beep_helper(prev_ci, cur_ci, beep_type):
 def videocapture(cap):
     color_red = (0, 0, 255)
     color_green = (0, 255, 0)
-    text_color = (0, 255, 0)
+    text_color = color_green
     prev_ci = None
     global same_scan_attempts 
     same_scan_attempts = 0
-   
-    parser = argparse.ArgumentParser(
-        description='EU COVID Vaccination Passport Verifier')
-    parser.add_argument('--image-file', metavar="IMAGE-FILE",
-                        help='Image to read QR-code from')
-    parser.add_argument('--raw-string', metavar="RAW-STRING",
-                        help='Contents of the QR-code as string')
-    parser.add_argument('image_file_positional', metavar="IMAGE-FILE", nargs="?",
-                        help='Image to read QR-code from')
-    parser.add_argument('--certificate-db-json-file', default=DEFAULT_CERTIFICATE_DB_JSON,
-                        help="Default: {0}".format(DEFAULT_CERTIFICATE_DB_JSON))
-
-    args = parser.parse_args()
 
     log.info('started capturing')
 
@@ -473,7 +374,7 @@ def videocapture(cap):
                 log.info("X.509 in DER form has SHA-256 beginning with: {0}".format(
                     cose_msg.uhdr[KID].hex()))
                 key = find_key(cose_msg.uhdr[KID],
-                               args.certificate_db_json_file)
+                               DEFAULT_CERTIFICATE_DB_JSON)
                 if key:
                     key_verified = verify_signature(cose_msg, key)
                 else:
