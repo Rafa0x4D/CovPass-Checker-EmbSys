@@ -30,11 +30,15 @@ from pyasn1.codec.ber import decoder as asn1_decoder
 from cryptojwt import jwk as cjwtk
 from cryptojwt import utils as cjwt_utils
 
+from beeper import beep
+
 log = logging.getLogger(__name__)
 
 DEFAULT_CERTIFICATE_DB_JSON = 'certs/roots/Digital_Green_Certificate_Signing_Keys.json'
 DEFAULT_CERTIFICATE_DIRECTORY = 'certs'
 
+# Counter; Scans for same Certs in row
+same_scan_attempts = 0
 
 def _setup_logger() -> None:
     log_formatter = logging.Formatter(
@@ -369,11 +373,32 @@ def createMessage(cbor, key_verified):
     return message
 
 
+def beep_helper(prev_ci, cur_ci, beep_type):                                              
+    global same_scan_attempts
+
+    # If previos Cert-ID and current Cert-ID are same OR
+    # the current Cert is being scanned >= 10 times
+    if prev_ci != cur_ci or same_scan_attempts >=  10:                                 
+        same_scan_attempts = 0
+
+        # Check which beep_type is selected (see README)                                                         
+        if beep_type == "valid":                                                       
+            beep(1, 0.2, 0)
+        if beep_type == "invalid":
+            beep(3, 0.2, 0.2)                                                            
+    else:                                                                              
+        same_scan_attempts += 1                                                        
+    return cur_ci 
+
+
 def videocapture(cap):
     color_red = (0, 0, 255)
     color_green = (0, 255, 0)
     text_color = (0, 255, 0)
-
+    prev_ci = None
+    global same_scan_attempts 
+    same_scan_attempts = 0
+   
     parser = argparse.ArgumentParser(
         description='EU COVID Vaccination Passport Verifier')
     parser.add_argument('--image-file', metavar="IMAGE-FILE",
@@ -457,14 +482,20 @@ def videocapture(cap):
                 log.info("Certificate is not signed")
 
             cbor = cbor2.loads(cose_msg.payload)
-
+            # current Cert-ID
+            cur_ci = str(cbor[-260][1]['v'][0]['ci'])
             # Draw rectangle around barcode
             if key_verified and check_fully_vaccinated(cbor):
                 rect_color = color_green
                 text_color = color_green
+
+                # beep func for valid status
+                # Previous Cert-ID 
+                prev_ci = beep_helper(prev_ci, cur_ci, "valid")
             else:
                 rect_color = color_red
                 text_color = color_red
+                prev_ci = beep_helper(prev_ci, cur_ci, "invalid")
 
             (x, y, w, h) = barcode.rect
             cv2.rectangle(frame, (x, y), (x + w, y + h), rect_color, 10)
