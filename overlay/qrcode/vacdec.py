@@ -266,7 +266,7 @@ def check_fully_vaccinated(cbor):
     lastdosedate = datetime.strptime(lastdosedate, "%Y-%m-%d")
     now = datetime.now()
 
-    return (nth_dose == total_doses) and ((lastdosedate + timedelta(days=15)) > now)
+    return (nth_dose == total_doses) and ((lastdosedate + timedelta(days=15)) < now)
 
 
 def createMessage(cbor, key_verified):
